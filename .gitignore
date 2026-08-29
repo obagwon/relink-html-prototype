@@ -1,0 +1,13 @@
+# Local planning sources are intentionally not published with the public demo.
+/*.pdf
+/*.docx
+/*.png
+/*필드*.md
+/RELINK_*기획안.md
+
+# Generated or local-only files
+/tmp/
+/node_modules/
+/.DS_Store
+/Thumbs.db
+

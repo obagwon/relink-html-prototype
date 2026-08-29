@@ -1,0 +1,83 @@
+:root {
+  --ink: #edf3ed;
+  --muted: #aab6b0;
+  --panel: rgba(8, 14, 17, 0.78);
+  --line: rgba(255, 255, 255, 0.18);
+  --bloom: #8ee768;
+  --freeze: #72d7ff;
+  --pulse: #ffc857;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #080b0d; }
+body { color: var(--ink); font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif; user-select: none; }
+button { font: inherit; }
+#game-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.hidden { display: none !important; }
+
+.screen {
+  position: fixed; inset: 0; z-index: 20; display: none; place-items: center;
+  background: radial-gradient(circle at 50% 42%, rgba(70, 99, 84, .18), rgba(3, 6, 8, .92) 66%);
+  backdrop-filter: blur(7px);
+}
+.screen.visible { display: grid; }
+.start-card, .pause-card { width: min(520px, calc(100vw - 40px)); text-align: center; }
+.eyebrow { font-size: 11px; letter-spacing: .34em; color: #a8bbb1; }
+.start-card h1 { margin: 12px 0 4px; font: 700 clamp(58px, 9vw, 104px)/.95 Georgia, serif; letter-spacing: -.06em; }
+.start-card h1 span { color: var(--bloom); }
+.start-card p { margin: 28px 0 36px; color: #bdc8c2; font-size: 15px; line-height: 1.8; }
+.start-card small, .pause-card small { display: block; margin-top: 18px; color: #75827c; font-size: 11px; }
+.start-card button, .pause-card button {
+  width: 100%; min-height: 54px; margin: 5px 0; border: 1px solid rgba(164, 229, 188, .55); border-radius: 3px;
+  background: rgba(123, 206, 153, .12); color: #eafff1; letter-spacing: .14em; cursor: pointer;
+  transition: .2s ease;
+}
+.start-card button:hover, .pause-card button:hover { background: rgba(123, 206, 153, .25); transform: translateY(-1px); }
+.pause-card h2 { margin: 12px 0 24px; font: 600 42px Georgia, serif; }
+.pause-card .secondary { border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.05); }
+.pause-card .danger { border-color: rgba(255,121,110,.35); background: rgba(255,80,70,.06); color: #ffc6c1; }
+
+#hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+.topbar { position: absolute; top: 0; left: 0; right: 0; padding: 28px 34px; display: flex; justify-content: space-between; align-items: flex-start; text-shadow: 0 2px 12px #000; }
+.region-name { font: 600 13px/1.2 Georgia, serif; letter-spacing: .18em; }
+.objective { margin-top: 8px; max-width: 510px; color: #c6d0cb; font-size: 12px; }
+.fragments { display: flex; gap: 8px; }
+.fragments span { width: 9px; height: 24px; border: 1px solid rgba(255,255,255,.35); transform: skew(-12deg); background: rgba(255,255,255,.06); box-shadow: 0 3px 10px #0008; }
+.fragments span.done[data-fragment="bloom"] { background: var(--bloom); box-shadow: 0 0 14px var(--bloom); }
+.fragments span.done[data-fragment="freeze"] { background: var(--freeze); box-shadow: 0 0 14px var(--freeze); }
+.fragments span.done[data-fragment="pulse"] { background: var(--pulse); box-shadow: 0 0 14px var(--pulse); }
+
+.crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%,-50%); opacity: .72; }
+.crosshair::before { content:""; position:absolute; inset: 6px; border: 1px solid white; border-radius: 50%; box-shadow: 0 0 8px #000; }
+.crosshair i, .crosshair b { position:absolute; background:#fff; opacity:.7; }
+.crosshair i { width:1px; height:4px; left:10px; top:0; box-shadow: 0 18px #fff; }
+.crosshair b { height:1px; width:4px; top:10px; left:0; box-shadow: 18px 0 #fff; }
+.crosshair.active::before { border-color: currentColor; box-shadow: 0 0 13px currentColor; }
+
+.target-card { position: absolute; left: 50%; top: calc(50% + 30px); transform: translateX(-50%); min-width: 170px; padding: 8px 12px; border: 1px solid var(--line); background: var(--panel); text-align:center; }
+.target-card strong { display:block; font-size: 11px; letter-spacing: .08em; }
+.target-card span { display:block; margin-top:3px; color:var(--muted); font-size:10px; }
+.interaction-prompt { position:absolute; left:50%; top:calc(50% + 72px); transform:translateX(-50%); padding:8px 12px; border:1px solid var(--line); background:var(--panel); font-size:11px; }
+
+.ability-bar { position:absolute; left:50%; bottom:26px; transform:translateX(-50%); display:flex; gap:8px; }
+.ability { position:relative; width:142px; height:46px; padding:0 12px 0 48px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:#aeb8b3; text-align:left; opacity:.72; }
+.ability kbd { position:absolute; top:5px; right:7px; color:#8e9993; font:9px monospace; }
+.ability i { position:absolute; left:15px; top:12px; width:20px; height:20px; border-radius:50%; background:currentColor; box-shadow:0 0 14px currentColor; }
+.ability span { font:600 11px/46px Georgia,serif; letter-spacing:.06em; }
+.ability.bloom { color:var(--bloom); }.ability.freeze { color:var(--freeze); }.ability.pulse { color:var(--pulse); }
+.ability.selected { opacity:1; transform:translateY(-4px); border-color:currentColor; background:rgba(8,14,17,.92); }
+
+.controls-tip { position:absolute; left:28px; bottom:27px; padding:12px 14px; border-left:2px solid #91a69b; background:linear-gradient(90deg,rgba(6,10,12,.72),transparent); color:#98a59f; font-size:10px; line-height:1.9; transition:opacity .8s; }
+.controls-tip b { color:#e9f0ec; font-weight:600; }
+.controls-tip.fade { opacity:0; }
+.toast { position:absolute; left:50%; top:19%; transform:translate(-50%,-12px); padding:10px 18px; border:1px solid transparent; background:rgba(5,9,11,.74); color:#fff; font:500 12px Georgia,serif; letter-spacing:.06em; opacity:0; transition:.24s ease; }
+.toast.show { opacity:1; transform:translate(-50%,0); border-color:var(--line); }
+.debug-panel { position:absolute; right:22px; top:84px; width:250px; padding:13px 15px; border:1px solid rgba(118,227,255,.22); background:rgba(2,10,14,.82); color:#a9eaff; font:11px/1.6 Consolas,monospace; white-space:pre-line; }
+
+@media (max-width: 720px) {
+  .topbar { padding:20px; }
+  .ability { width:88px; padding-left:34px; }
+  .ability i { left:10px; width:16px; height:16px; top:15px; }
+  .ability span { font-size:9px; }
+  .controls-tip { display:none; }
+}
