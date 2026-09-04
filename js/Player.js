@@ -35,7 +35,7 @@ export class Player {
     this.enabled = false;
     this.speed = 5.3;
     this.runSpeed = 8.2;
-    this.jumpSpeed = 10.8;
+    this.jumpSpeed = 20.0;
     this.gravity = -23;
     this.standingCollider = null;
     this.spawn = new THREE.Vector3(0, 1, 8);
