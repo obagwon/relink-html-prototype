@@ -59,6 +59,30 @@ button { font: inherit; }
 .target-card span { display:block; margin-top:3px; color:var(--muted); font-size:10px; }
 .interaction-prompt { position:absolute; left:50%; top:calc(50% + 72px); transform:translateX(-50%); padding:8px 12px; border:1px solid var(--line); background:var(--panel); font-size:11px; }
 
+body.ability-targeting-active #game-canvas { cursor: crosshair; }
+#hud.targeting::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(circle at center, transparent 20%, rgba(2,7,10,.3) 72%, rgba(2,7,10,.62));
+  border:1px solid color-mix(in srgb, var(--ability-color) 45%, transparent);
+}
+#hud.targeting .crosshair { opacity:0; }
+#hud.targeting .ability-bar { filter:drop-shadow(0 0 12px color-mix(in srgb, var(--ability-color) 35%, transparent)); }
+.ability-targeting {
+  position:absolute; top:92px; left:50%; transform:translateX(-50%); min-width:min(520px,calc(100vw - 40px));
+  padding:12px 18px; border-top:1px solid var(--ability-color); border-bottom:1px solid var(--ability-color);
+  background:linear-gradient(90deg,transparent,rgba(4,10,13,.88) 18%,rgba(4,10,13,.88) 82%,transparent);
+  text-align:center; color:var(--ability-color); text-shadow:0 0 15px currentColor;
+}
+.ability-targeting strong { display:block; font:600 12px/1.3 Georgia,serif; letter-spacing:.18em; }
+.ability-targeting span { display:block; margin-top:5px; color:#d6dfda; font-size:10px; letter-spacing:.05em; text-shadow:none; }
+#hud.targeting .target-card {
+  left:var(--target-x,50%); top:var(--target-y,50%); transform:none; max-width:230px;
+  border-color:var(--ability-color); box-shadow:0 0 18px color-mix(in srgb, var(--ability-color) 28%, transparent);
+  text-align:left;
+}
+#hud.targeting .target-card.invalid { border-color:#ff887f; box-shadow:0 0 14px rgba(255,80,70,.22); }
+#hud.targeting .target-card.invalid span { color:#ffb0aa; }
+
 .ability-bar { position:absolute; left:50%; bottom:26px; transform:translateX(-50%); display:flex; gap:8px; }
 .ability { position:relative; width:142px; height:46px; padding:0 12px 0 48px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:#aeb8b3; text-align:left; opacity:.72; }
 .ability kbd { position:absolute; top:5px; right:7px; color:#8e9993; font:9px monospace; }

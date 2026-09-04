@@ -12,6 +12,8 @@ export class UI {
     this.targetHint = document.querySelector('#target-hint');
     this.crosshair = document.querySelector('#crosshair');
     this.interactionPrompt = document.querySelector('#interaction-prompt');
+    this.abilityTargeting = document.querySelector('#ability-targeting');
+    this.abilityTargetingName = document.querySelector('#ability-targeting-name');
     this.toastElement = document.querySelector('#toast');
     this.debug = document.querySelector('#debug-panel');
     this.controls = document.querySelector('#controls-tip');
@@ -36,8 +38,28 @@ export class UI {
   setObjective(text) { this.objective.textContent = text; }
 
   setAbility(key) {
-    document.querySelectorAll('.ability').forEach((el) => el.classList.toggle('selected', el.dataset.ability === key));
+    document.querySelectorAll('.ability').forEach((element) => element.classList.toggle('selected', element.dataset.ability === key));
     this.crosshair.style.color = ABILITIES[key].css;
+    if (this.hud.classList.contains('targeting')) this.setAbilityTargeting(true, key);
+  }
+
+  setAbilityTargeting(active, key) {
+    const info = ABILITIES[key];
+    this.hud.classList.toggle('targeting', active);
+    this.abilityTargeting.classList.toggle('hidden', !active);
+    document.body.classList.toggle('ability-targeting-active', active);
+    if (active && info) {
+      this.hud.style.setProperty('--ability-color', info.css);
+      this.abilityTargetingName.textContent = `${info.name} · TARGET SELECT`;
+    }
+    if (!active) this.targetCard.classList.add('hidden');
+  }
+
+  setTargetingPointer(x, y) {
+    const cardX = Math.min(x + 24, Math.max(16, innerWidth - 250));
+    const cardY = Math.min(y + 20, Math.max(80, innerHeight - 94));
+    this.hud.style.setProperty('--target-x', `${cardX}px`);
+    this.hud.style.setProperty('--target-y', `${cardY}px`);
   }
 
   setTarget(target, ability) {
@@ -47,7 +69,10 @@ export class UI {
     if (!target) return;
     this.targetName.textContent = target.name;
     const accepts = target.accepts(ability);
-    this.targetHint.textContent = accepts ? `${ABILITIES[ability].name} 사용 · ${target.state}` : `${target.abilities.map((a) => ABILITIES[a].name).join(' / ')} · ${target.state}`;
+    this.targetCard.classList.toggle('invalid', !accepts);
+    this.targetHint.textContent = accepts
+      ? `클릭하여 ${ABILITIES[ability].name} 사용 · ${target.state}`
+      : `${target.abilities.map((key) => ABILITIES[key].name).join(' / ')} 필요 · ${target.state}`;
     this.crosshair.style.color = accepts ? ABILITIES[ability].css : '#ffffff';
   }
 
@@ -55,6 +80,7 @@ export class UI {
     this.interactionPrompt.textContent = label;
     this.interactionPrompt.classList.remove('hidden');
   }
+
   hideInteraction() { this.interactionPrompt.classList.add('hidden'); }
 
   toast(text, duration = 2200) {
@@ -65,7 +91,7 @@ export class UI {
   }
 
   setFragments(progress) {
-    document.querySelectorAll('[data-fragment]').forEach((el) => el.classList.toggle('done', !!progress[el.dataset.fragment]));
+    document.querySelectorAll('[data-fragment]').forEach((element) => element.classList.toggle('done', !!progress[element.dataset.fragment]));
   }
 
   toggleDebug() { this.debug.classList.toggle('hidden'); }

@@ -25,8 +25,10 @@ export class Game {
 
   bindEvents(){
     window.addEventListener('resize',()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));});
-    document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===this.canvas;this.player.enabled=locked;if(this.started)this.ui.setPaused(!locked);});
+    document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===this.canvas;const targeting=this.abilities.isTargeting;this.player.enabled=locked&&!targeting;if(this.started)this.ui.setPaused(!locked&&!targeting);});
+    document.addEventListener('pointerlockerror',()=>{if(this.started&&!this.abilities.isTargeting)this.ui.setPaused(true);});
     window.addEventListener('keydown',(e)=>{
+      if(this.abilities.isTargeting&&e.code!=='F1')return;
       if(e.code==='KeyE'&&document.pointerLockElement===this.canvas)this.world.interact();
       if(e.code==='KeyR'&&!e.repeat&&this.started)this.resetCurrentRegion();
       if(e.code==='F1'){e.preventDefault();this.ui.toggleDebug();}
@@ -41,7 +43,7 @@ export class Game {
   resume(){this.canvas.requestPointerLock();}
 
   gotoRegion(key,silent=false){
-    const info=REGION_INFO[key];if(!info)return;this.currentRegion=key;const position=new THREE.Vector3(...info.spawn);this.player.setSpawn(position);this.ui.setRegion(info);this.interaction.target=null;this.interaction.clearHighlight();this.ui.hideInteraction();
+    const info=REGION_INFO[key];if(!info)return;this.currentRegion=key;const position=new THREE.Vector3(...info.spawn);this.player.setSpawn(position);this.ui.setRegion(info);this.interaction.clearTarget();this.ui.hideInteraction();
     if(key==='hub'||key==='bloom'||key==='bloomDungeon')this.cameraController.yaw=0;
     if(key==='freeze')this.cameraController.yaw=-Math.PI/2;
     if(key==='pulse')this.cameraController.yaw=Math.PI/2;
@@ -60,9 +62,9 @@ export class Game {
   loadProgress(){try{return{bloom:false,freeze:false,pulse:false,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}}catch{return{bloom:false,freeze:false,pulse:false}}}
 
   animate(){
-    const now=performance.now()/1000;const dt=Math.min(Math.max(0,now-this.lastFrame),.05);this.lastFrame=now;this.elapsed+=dt;const active=this.started&&(this.testMode||document.pointerLockElement===this.canvas);
-    if(active){this.world.update(dt,this.elapsed);this.player.update(dt,this.cameraController,this.world);this.cameraController.update(dt);this.orbs.update(dt,this.cameraController);this.interaction.update(this.abilities.selected);this.abilities.update(dt);}else{this.cameraController.update(dt);this.orbs.update(dt,this.cameraController);this.abilities.update(dt);}
-    this.renderer.render(this.scene,this.camera);this.updateDebug(dt);
+    const now=performance.now()/1000;const dt=Math.min(Math.max(0,now-this.lastFrame),.05);this.lastFrame=now;const targeting=this.abilities.isTargeting;if(!targeting)this.elapsed+=dt;const active=this.started&&(this.testMode||document.pointerLockElement===this.canvas);
+    if(targeting){this.player.enabled=false;this.abilities.refreshTarget();}else if(active){this.world.update(dt,this.elapsed);this.player.update(dt,this.cameraController,this.world);this.cameraController.update(dt);this.orbs.update(dt,this.cameraController);}else{this.cameraController.update(dt);this.orbs.update(dt,this.cameraController);}
+    this.abilities.update(targeting?0:dt);this.renderer.render(this.scene,this.camera);this.updateDebug(dt);
   }
 
   runSelfTest(){
@@ -76,8 +78,10 @@ export class Game {
       const y=this.player.root.position.y;this.player.grounded=true;this.player.bounce(8);this.player.update(1/60,this.cameraController,this.world);check('jump',this.player.root.position.y>y);const theoreticalRunJumpRange=this.player.runSpeed*((2*this.player.jumpSpeed)/Math.abs(this.player.gravity));check('jump-range-config',theoreticalRunJumpRange>14,theoreticalRunJumpRange.toFixed(2)+'m');
       const yaw=this.cameraController.yaw;this.cameraController.yaw+=Math.PI*2;this.cameraController.update(1,true);check('camera-360',Number.isFinite(this.camera.position.x)&&this.cameraController.getForward().length()>.99);this.cameraController.yaw=yaw;
       for(const key of ['bloom','freeze','pulse'])this.abilities.select(key);check('ability-switch',this.abilities.selected==='pulse');
-      this.gotoRegion('bloom',true);this.player.teleport(new THREE.Vector3(0,.1,-74));this.camera.position.set(0,2.3,-69);this.camera.lookAt(0,.55,-77.8);this.camera.updateMatrixWorld(true);const aimed=this.interaction.update('bloom');check('center-raycast',aimed?.id==='bloom-vine-bridge',aimed?.id||'none');
-      const bridge=this.interaction.interactables.find(i=>i.id==='bloom-vine-bridge');bridge.handle('bloom',{});for(let i=0;i<120;i++)this.world.update(1/60,i/60);check('bloom-growth',bridge.completed&&bridge.state.includes('bridge'));
+      const focusStarted=this.abilities.beginTargeting('bloom',{releasePointer:false});check('ability-time-stop-mode',focusStarted&&this.abilities.isTargeting&&this.ui.hud.classList.contains('targeting'));this.abilities.cancelTargeting({restorePointer:false});
+      this.gotoRegion('bloom',true);this.player.teleport(new THREE.Vector3(0,.1,-74));this.camera.position.set(0,2.3,-69);this.camera.lookAt(0,.55,-77.8);this.camera.updateMatrixWorld(true);this.abilities.select('bloom');const aimed=this.interaction.update('bloom',new THREE.Vector2(0,0));check('free-pointer-raycast',aimed?.id==='bloom-vine-bridge',aimed?.id||'none');
+      const bridge=this.interaction.interactables.find(i=>i.id==='bloom-vine-bridge');this.orbs.update(1/60,this.cameraController);let orbArrived=false;const launched=this.orbs.castTo('bloom',bridge,this.interaction.hitPoint.clone(),()=>{orbArrived=true;});for(let i=0;i<120;i++)this.orbs.update(1/60,this.cameraController);const assignment=this.orbs.getAssignment('bloom');check('orb-target-flight',launched&&orbArrived&&assignment?.phase==='dwelling');const orbPoint=this.orbs.orbs.bloom.getWorldPosition(new THREE.Vector3());const anchorPoint=this.orbs.getAnchorWorld(assignment,new THREE.Vector3());check('orb-target-dwell',orbPoint.distanceTo(anchorPoint)<1.5,orbPoint.distanceTo(anchorPoint).toFixed(2)+'m');
+      bridge.handle('bloom',{});for(let i=0;i<120;i++)this.world.update(1/60,i/60);check('bloom-growth',bridge.completed&&bridge.state.includes('bridge'));
       this.world.regions.bloom.reset();check('region-reset',!bridge.completed&&bridge.state==='withered');
       const leaf=this.interaction.interactables.find(i=>i.id==='bloom-leaf-0');leaf.handle('freeze',{});check('freeze-motion',leaf.state.includes('frozen'));
       const conductor=this.interaction.interactables.find(i=>i.id==='pulse-bloom-conductor');conductor.handle('bloom',{});conductor.handle('pulse',{});check('bloom-pulse-combo',conductor.completed);
@@ -85,7 +89,7 @@ export class Game {
       for(const region of ['hub','bloom','freeze','pulse'])this.gotoRegion(region,true);check('region-travel',this.currentRegion==='pulse');
       const saved=this.progress.bloom;localStorage.setItem(STORAGE_KEY,JSON.stringify(this.progress));check('local-storage',JSON.parse(localStorage.getItem(STORAGE_KEY)).bloom===saved);
     }catch(error){check('uncaught-smoke-error',false,error.stack||error.message);}
-    finally{this.progress=oldProgress;if(oldStored===null)localStorage.removeItem(STORAGE_KEY);else localStorage.setItem(STORAGE_KEY,oldStored);for(const key of ['bloom','freeze','pulse'])this.world.regions[key].reset();this.world.updateRestoration(this.progress);this.ui.setFragments(this.progress);this.gotoRegion('hub',true);}
+    finally{this.orbs.recallAll();this.interaction.clearTarget();this.progress=oldProgress;if(oldStored===null)localStorage.removeItem(STORAGE_KEY);else localStorage.setItem(STORAGE_KEY,oldStored);for(const key of ['bloom','freeze','pulse'])this.world.regions[key].reset();this.world.updateRestoration(this.progress);this.ui.setFragments(this.progress);this.gotoRegion('hub',true);}
     return report;
   }
   updateDebug(dt){
